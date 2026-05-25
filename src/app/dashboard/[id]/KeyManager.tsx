@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { generateApiKey, revokeApiKey } from './actions'
-import { Key, Copy, Check, ShieldAlert, Trash2 } from 'lucide-react'
+import { Key, Copy, Check, ShieldAlert, Trash2, Activity } from 'lucide-react'
 
 type APIKey = {
   id: string
@@ -81,6 +82,8 @@ export default function KeyManager({ projectId, existingKeys }: { projectId: str
           ) : (
             existingKeys.map((key) => (
               <div key={key.id} className={`flex items-center justify-between p-4 border rounded-lg ${key.is_active ? 'bg-gray-50' : 'bg-red-50 opacity-60'}`}>
+                
+                {/* Left Side: Key Info */}
                 <div className="flex flex-col">
                   <code className="font-mono text-sm font-semibold">{key.key_prefix}••••••••••••••••</code>
                   <span className="text-xs text-gray-500 mt-1">
@@ -88,15 +91,30 @@ export default function KeyManager({ projectId, existingKeys }: { projectId: str
                     {!key.is_active && ' (Revoked)'}
                   </span>
                 </div>
+                
+                {/* Right Side: Actions */}
                 {key.is_active && (
-                  <button
-                    onClick={() => revokeApiKey(key.id, projectId)}
-                    className="p-2 text-red-600 hover:bg-red-100 rounded-md transition-colors"
-                    title="Revoke Key"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-3">
+                    {/* View Usage Button */}
+                    <Link 
+                      href={`/dashboard/${projectId}/key/${key.id}`}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-md transition-colors"
+                    >
+                      <Activity className="w-4 h-4" />
+                      View Usage
+                    </Link>
+
+                    {/* Revoke Button */}
+                    <button
+                      onClick={() => revokeApiKey(key.id, projectId)}
+                      className="p-2 text-red-600 hover:bg-red-100 rounded-md transition-colors"
+                      title="Revoke Key"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 )}
+                
               </div>
             ))
           )}

@@ -63,7 +63,7 @@ async function handleProxy(request: NextRequest, props: { params: Promise<{ proj
     redis: redis,
     limiter: Ratelimit.slidingWindow(
       projectInfo.rate_limit, 
-      projectInfo.rate_limit_window as any // Typecast string "1 m" to Upstash Unit
+      projectInfo.rate_limit_window as any // Typecast string (e.g., "1 m") to Upstash Unit
     ),
     analytics: true, 
   })
@@ -112,9 +112,37 @@ async function handleProxy(request: NextRequest, props: { params: Promise<{ proj
       fetchOptions.body = await request.arrayBuffer()
     }
 
+    // 1. Start the latency timer
+    const startTime = Date.now()
+
+    // 2. Execute the actual proxy request to the target server
     const targetResponse = await fetch(targetUrl, fetchOptions)
 
-    // 6. Return Response WITH Rate Limit Headers
+    // 3. Stop the timer
+    const latency_ms = Date.now() - startTime
+
+    // 4. Log the Analytics to Tinybird (Using the hashed key for security!)
+    const logData = {
+      timestamp: new Date().toISOString(),
+      project_id: projectId,
+      key_hash: rawKey, // Uses the raw token extracted at the top of the file
+      method: request.method,
+      url: targetUrl,
+      status: targetResponse.status,
+      latency_ms: latency_ms,
+      user_agent: request.headers.get('user-agent') || 'unknown'
+    }
+
+    fetch(`https://api.europe-west2.gcp.tinybird.co/v0/events?name=gateway_logs`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.TINYBIRD_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(logData)
+    }).catch(err => console.error("Tinybird logging failed:", err)) 
+    
+    // 5. Return Response WITH Rate Limit Headers back to the client
     const responseHeaders = new Headers(targetResponse.headers)
     Object.entries(rateLimitHeaders).forEach(([key, value]) => {
       responseHeaders.set(key, value)
@@ -132,4 +160,12 @@ async function handleProxy(request: NextRequest, props: { params: Promise<{ proj
   }
 }
 
-export { handleProxy as GET, handleProxy as POST, handleProxy as PUT, handleProxy as DELETE, handleProxy as PATCH }
+// 6. Export all standard HTTP methods AND OPTIONS for CORS preflight support
+export { 
+  handleProxy as GET, 
+  handleProxy as POST, 
+  handleProxy as PUT, 
+  handleProxy as DELETE, 
+  handleProxy as PATCH,
+  handleProxy as OPTIONS 
+}
