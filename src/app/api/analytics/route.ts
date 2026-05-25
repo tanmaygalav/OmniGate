@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 
-// FIX: Force Vercel to bypass the cache and fetch fresh data every time
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
@@ -12,8 +11,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    // IMPORTANT: Make sure this URL matches your actual Tinybird Pipe name and region!
-    // If your pipe is named differently, change 'gateway_logs_api'
+    // FIX: Changed 'gateway_logs_api' to 'api_usage_stats' to match your Tinybird screenshot!
     const tinybirdUrl = new URL(`https://api.europe-west2.gcp.tinybird.co/v0/pipes/api_usage_stats.json`);
     tinybirdUrl.searchParams.append('key_hash', keyHash);
 
