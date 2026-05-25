@@ -125,7 +125,7 @@ async function handleProxy(request: NextRequest, props: { params: Promise<{ proj
     const logData = {
       timestamp: new Date().toISOString(),
       project_id: projectId,
-      key_hash: rawKey, // Uses the raw token extracted at the top of the file
+      key_hash: keyHash, // Uses the raw token extracted at the top of the file
       method: request.method,
       url: targetUrl,
       status: targetResponse.status,

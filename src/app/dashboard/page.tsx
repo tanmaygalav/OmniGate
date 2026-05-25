@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { Server, Plus, LogOut, ArrowRight } from 'lucide-react'
+import DeleteProjectButton from './DeleteProjectButton'
 
 export default async function Dashboard() {
   // 1. Authenticate user server-side
@@ -118,6 +119,13 @@ export default async function Dashboard() {
               {projects?.map((project) => (
                 <div key={project.id} className="bg-white p-5 rounded-xl border shadow-sm hover:shadow-md transition-shadow">
                   <h3 className="font-semibold text-lg">{project.name}</h3>
+                  {/* Card Header with Name and Delete Button */}
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold">{project.name}</h3>
+                    
+                    {/* NEW: Drop the delete button right here! */}
+                    <DeleteProjectButton projectId={project.id} projectName={project.name} />
+                </div>
                   <div className="mt-4 space-y-2">
                     <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 p-2 rounded border">
                       <span className="font-medium shrink-0">Target:</span>

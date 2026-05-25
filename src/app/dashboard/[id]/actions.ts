@@ -65,3 +65,50 @@ export async function updateRateLimit(projectId: string, newLimit: number) {
   
   return { success: true }
 }
+
+export async function deleteProject(projectId: string) {
+  const supabase = await createClient()
+
+  // 1. Verify user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  // 2. Delete the project (Supabase will auto-delete connected API keys if cascading is set up in your DB)
+  const { error } = await supabase
+    .from('projects')
+    .delete()
+    .eq('id', projectId)
+
+  if (error) {
+    console.error('Failed to delete project:', error)
+    return { success: false, error: error.message }
+  }
+
+  // 3. Refresh the main dashboard page
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
+// Add this to the bottom of actions.ts
+export async function getKeyAndProjectDetails(keyId: string, projectId: string) {
+  const supabase = await createClient()
+  
+  // Fetch the secure hash for Tinybird
+  const { data: keyData } = await supabase
+    .from('api_keys')
+    .select('key_hash')
+    .eq('id', keyId)
+    .single()
+
+  // Fetch the real rate limit for the UI
+  const { data: projectData } = await supabase
+    .from('projects')
+    .select('rate_limit')
+    .eq('id', projectId)
+    .single()
+
+  return {
+    keyHash: keyData?.key_hash,
+    rateLimit: projectData?.rate_limit || 100
+  }
+}
