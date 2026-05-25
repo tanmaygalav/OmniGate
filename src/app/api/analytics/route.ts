@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   try {
     // IMPORTANT: Make sure this URL matches your actual Tinybird Pipe name and region!
     // If your pipe is named differently, change 'gateway_logs_api'
-    const tinybirdUrl = new URL(`https://api.europe-west2.gcp.tinybird.co/v0/pipes/gateway_logs.json`);
+    const tinybirdUrl = new URL(`https://api.europe-west2.gcp.tinybird.co/v0/pipes/api_usage_stats.json`);
     tinybirdUrl.searchParams.append('key_hash', keyHash);
 
     const response = await fetch(tinybirdUrl.toString(), {
