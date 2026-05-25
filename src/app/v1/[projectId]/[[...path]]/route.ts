@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, NextFetchEvent } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Redis } from '@upstash/redis'
 import { Ratelimit } from '@upstash/ratelimit'
@@ -18,7 +18,12 @@ async function hashKeyEdge(key: string) {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
-async function handleProxy(request: NextRequest, props: { params: Promise<{ projectId: string; path?: string[] }> }) {
+// FIX 1: Added event: NextFetchEvent as the third parameter
+async function handleProxy(
+  request: NextRequest, 
+  props: { params: Promise<{ projectId: string; path?: string[] }> },
+  event: NextFetchEvent 
+) {
   const params = await props.params
   const projectId = params.projectId
   
@@ -121,11 +126,11 @@ async function handleProxy(request: NextRequest, props: { params: Promise<{ proj
     // 3. Stop the timer
     const latency_ms = Date.now() - startTime
 
-    // 4. Log the Analytics to Tinybird (Using the hashed key for security!)
+    // 4. Log the Analytics to Tinybird
     const logData = {
       timestamp: new Date().toISOString(),
       project_id: projectId,
-      key_hash: keyHash, // Uses the raw token extracted at the top of the file
+      key_hash: keyHash, // Uses the secure cryptographic hash
       method: request.method,
       url: targetUrl,
       status: targetResponse.status,
@@ -133,15 +138,22 @@ async function handleProxy(request: NextRequest, props: { params: Promise<{ proj
       user_agent: request.headers.get('user-agent') || 'unknown'
     }
 
-    fetch(`https://api.europe-west2.gcp.tinybird.co/v0/events?name=gateway_logs`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.TINYBIRD_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(logData)
-    }).catch(err => console.error("Tinybird logging failed:", err)) 
-    
+    // FIX 2: Wrapped the fetch call in event.waitUntil
+    event.waitUntil(
+      fetch(`https://api.europe-west2.gcp.tinybird.co/v0/events?name=gateway_logs`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.TINYBIRD_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(logData)
+      })
+      .then(res => {
+        if (!res.ok) console.error("Tinybird ingestion status error:", res.status)
+      })
+      .catch(err => console.error("Tinybird background logging failed:", err))
+    )
+
     // 5. Return Response WITH Rate Limit Headers back to the client
     const responseHeaders = new Headers(targetResponse.headers)
     Object.entries(rateLimitHeaders).forEach(([key, value]) => {
