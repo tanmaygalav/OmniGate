@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse, NextFetchEvent } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Redis } from '@upstash/redis'
 import { Ratelimit } from '@upstash/ratelimit'
@@ -18,11 +18,10 @@ async function hashKeyEdge(key: string) {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
-// FIX 1: Added event: NextFetchEvent as the third parameter
+// FIX 1: Reverted to exactly 2 arguments to satisfy Next.js RouteHandler types
 async function handleProxy(
   request: NextRequest, 
-  props: { params: Promise<{ projectId: string; path?: string[] }> },
-  event: NextFetchEvent 
+  props: { params: Promise<{ projectId: string; path?: string[] }> }
 ) {
   const params = await props.params
   const projectId = params.projectId
@@ -61,35 +60,29 @@ async function handleProxy(
   const projectInfo = keyData.projects as unknown as { target_url: string, rate_limit: number, rate_limit_window: string }
 
   // 3. Execute Rate Limiting
-  // We use the project ID and Key Hash as a unique identifier for the Redis bucket
   const identifier = `limit_${projectId}_${keyHash}`
   
   const ratelimit = new Ratelimit({
     redis: redis,
     limiter: Ratelimit.slidingWindow(
       projectInfo.rate_limit, 
-      projectInfo.rate_limit_window as any // Typecast string (e.g., "1 m") to Upstash Unit
+      projectInfo.rate_limit_window as any
     ),
     analytics: true, 
   })
 
   const { success, limit, remaining, reset } = await ratelimit.limit(identifier)
 
-  // Define our standard rate limit headers to attach to all responses
   const rateLimitHeaders = {
     'X-RateLimit-Limit': limit.toString(),
     'X-RateLimit-Remaining': remaining.toString(),
     'X-RateLimit-Reset': reset.toString(),
   }
 
-  // If rate limit exceeded, block the request immediately
   if (!success) {
     return NextResponse.json(
       { error: 'Too Many Requests: Rate limit exceeded for this API Key' },
-      { 
-        status: 429, 
-        headers: rateLimitHeaders 
-      }
+      { status: 429, headers: rateLimitHeaders }
     )
   }
 
@@ -117,20 +110,14 @@ async function handleProxy(
       fetchOptions.body = await request.arrayBuffer()
     }
 
-    // 1. Start the latency timer
     const startTime = Date.now()
-
-    // 2. Execute the actual proxy request to the target server
     const targetResponse = await fetch(targetUrl, fetchOptions)
-
-    // 3. Stop the timer
     const latency_ms = Date.now() - startTime
 
-    // 4. Log the Analytics to Tinybird
     const logData = {
       timestamp: new Date().toISOString(),
       project_id: projectId,
-      key_hash: keyHash, // Uses the secure cryptographic hash
+      key_hash: keyHash,
       method: request.method,
       url: targetUrl,
       status: targetResponse.status,
@@ -138,23 +125,25 @@ async function handleProxy(
       user_agent: request.headers.get('user-agent') || 'unknown'
     }
 
-    // FIX 2: Wrapped the fetch call in event.waitUntil
-    event.waitUntil(
-      fetch(`https://api.europe-west2.gcp.tinybird.co/v0/events?name=gateway_logs`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.TINYBIRD_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(logData)
-      })
-      .then(res => {
-        if (!res.ok) console.error("Tinybird ingestion status error:", res.status)
-      })
-      .catch(err => console.error("Tinybird background logging failed:", err))
-    )
+    // FIX 2: Create the telemetry promise
+    const telemetryPromise = fetch(`https://api.europe-west2.gcp.tinybird.co/v0/events?name=gateway_logs`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.TINYBIRD_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(logData)
+    })
+    .then(res => { if (!res.ok) console.error("Tinybird ingestion error:", res.status) })
+    .catch(err => console.error("Tinybird background logging failed:", err));
 
-    // 5. Return Response WITH Rate Limit Headers back to the client
+    // FIX 3: Safely cast props to access Vercel's edge context without breaking TypeScript
+    const edgeContext = props as any;
+    if (typeof edgeContext.waitUntil === 'function') {
+      edgeContext.waitUntil(telemetryPromise);
+    }
+
+    // 5. Return Response WITH Rate Limit Headers
     const responseHeaders = new Headers(targetResponse.headers)
     Object.entries(rateLimitHeaders).forEach(([key, value]) => {
       responseHeaders.set(key, value)
@@ -172,7 +161,7 @@ async function handleProxy(
   }
 }
 
-// 6. Export all standard HTTP methods AND OPTIONS for CORS preflight support
+// 6. Export all standard HTTP methods AND OPTIONS
 export { 
   handleProxy as GET, 
   handleProxy as POST, 
