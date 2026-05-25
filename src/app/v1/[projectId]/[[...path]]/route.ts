@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { Redis } from '@upstash/redis'
+import { Ratelimit } from '@upstash/ratelimit'
 
-// Force this route to run on the Edge Network for low latency
 export const runtime = 'edge'
 
-// Edge-compatible SHA-256 Hashing (Standard Node 'crypto' is not available on the Edge)
+// 1. Initialize Upstash Redis
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+})
+
 async function hashKeyEdge(key: string) {
   const msgBuffer = new TextEncoder().encode(key)
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer)
@@ -16,45 +22,74 @@ async function handleProxy(request: NextRequest, props: { params: Promise<{ proj
   const params = await props.params
   const projectId = params.projectId
   
-  // Reconstruct any additional URL paths (e.g., /api/users)
   const pathArray = params.path || []
   const subPath = pathArray.length > 0 ? `/${pathArray.join('/')}` : ''
 
-  // 1. Auth Check: Extract Bearer Token
+  // Auth Check
   const authHeader = request.headers.get('authorization')
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return NextResponse.json({ error: 'Unauthorized: Missing or invalid Bearer token' }, { status: 401 })
   }
   
   const rawKey = authHeader.split(' ')[1]
-
-  // 2. Hash the incoming key
   const keyHash = await hashKeyEdge(rawKey)
 
-  // 3. Database Verification (Using Service Role to bypass RLS)
+  // Database Verification
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  // Query the key and join the associated project target_url in one fast trip
+  // 2. Fetch the Key AND the Rate Limit configs from the Project
   const { data: keyData, error: keyError } = await supabase
     .from('api_keys')
-    .select('is_active, projects(target_url)')
+    .select('is_active, projects(target_url, rate_limit, rate_limit_window)')
     .eq('project_id', projectId)
     .eq('key_hash', keyHash)
     .single()
 
-  // 4. Reject if invalid or inactive
   if (keyError || !keyData || !keyData.is_active) {
     return NextResponse.json({ error: 'Unauthorized: Invalid or revoked API key' }, { status: 401 })
   }
 
-  // 5. Construct the final Target URL
-  const projectInfo = keyData.projects as unknown as { target_url: string }
-  const targetBaseUrl = projectInfo.target_url.replace(/\/$/, '') 
+  // Typecast the relational data
+  const projectInfo = keyData.projects as unknown as { target_url: string, rate_limit: number, rate_limit_window: string }
+
+  // 3. Execute Rate Limiting
+  // We use the project ID and Key Hash as a unique identifier for the Redis bucket
+  const identifier = `limit_${projectId}_${keyHash}`
   
-  // Clean up Next.js injected route parameters before forwarding
+  const ratelimit = new Ratelimit({
+    redis: redis,
+    limiter: Ratelimit.slidingWindow(
+      projectInfo.rate_limit, 
+      projectInfo.rate_limit_window as any // Typecast string "1 m" to Upstash Unit
+    ),
+    analytics: true, 
+  })
+
+  const { success, limit, remaining, reset } = await ratelimit.limit(identifier)
+
+  // Define our standard rate limit headers to attach to all responses
+  const rateLimitHeaders = {
+    'X-RateLimit-Limit': limit.toString(),
+    'X-RateLimit-Remaining': remaining.toString(),
+    'X-RateLimit-Reset': reset.toString(),
+  }
+
+  // If rate limit exceeded, block the request immediately
+  if (!success) {
+    return NextResponse.json(
+      { error: 'Too Many Requests: Rate limit exceeded for this API Key' },
+      { 
+        status: 429, 
+        headers: rateLimitHeaders 
+      }
+    )
+  }
+
+  // 4. Construct Target URL
+  const targetBaseUrl = projectInfo.target_url.replace(/\/$/, '') 
   const searchParams = new URLSearchParams(request.nextUrl.search)
   searchParams.delete('projectId')
   searchParams.delete('path')
@@ -62,9 +97,9 @@ async function handleProxy(request: NextRequest, props: { params: Promise<{ proj
 
   const targetUrl = `${targetBaseUrl}${subPath}${cleanQuery}`
 
-  // 6. Forward the Request
+  // 5. Forward Request
   const proxyHeaders = new Headers(request.headers)
-  proxyHeaders.delete('host') // Remove the gateway host so the fetch API uses the target's host
+  proxyHeaders.delete('host') 
 
   try {
     const fetchOptions: RequestInit = {
@@ -73,16 +108,17 @@ async function handleProxy(request: NextRequest, props: { params: Promise<{ proj
       redirect: 'manual',
     }
 
-    // Only attach a body for methods that allow it
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       fetchOptions.body = await request.arrayBuffer()
     }
 
-    // Execute the proxy request
     const targetResponse = await fetch(targetUrl, fetchOptions)
 
-    // 7. Return the response back to the client
+    // 6. Return Response WITH Rate Limit Headers
     const responseHeaders = new Headers(targetResponse.headers)
+    Object.entries(rateLimitHeaders).forEach(([key, value]) => {
+      responseHeaders.set(key, value)
+    })
 
     return new NextResponse(targetResponse.body, {
       status: targetResponse.status,
@@ -96,5 +132,4 @@ async function handleProxy(request: NextRequest, props: { params: Promise<{ proj
   }
 }
 
-// Map all standard HTTP methods to our proxy handler
 export { handleProxy as GET, handleProxy as POST, handleProxy as PUT, handleProxy as DELETE, handleProxy as PATCH }
