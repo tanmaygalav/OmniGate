@@ -28,10 +28,10 @@ export default function Home() {
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-6">
         <div className="max-w-4xl mx-auto text-center space-y-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-50 border border-gray-200 text-sm font-medium text-gray-600 mb-4">
+          {/* <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-50 border border-gray-200 text-sm font-medium text-gray-600 mb-4">
             <span className="flex h-2 w-2 rounded-full bg-green-500"></span>
             v1.0 is now live
-          </div>
+          </div> */}
           <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-black">
             Enterprise API Gateway <br className="hidden md:block" />
             <span className="text-gray-400">built for the Edge.</span>

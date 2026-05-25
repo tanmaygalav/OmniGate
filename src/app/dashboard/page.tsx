@@ -118,7 +118,6 @@ export default async function Dashboard() {
             <div className="grid gap-4 md:grid-cols-2">
               {projects?.map((project) => (
                 <div key={project.id} className="bg-white p-5 rounded-xl border shadow-sm hover:shadow-md transition-shadow">
-                  <h3 className="font-semibold text-lg">{project.name}</h3>
                   {/* Card Header with Name and Delete Button */}
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-bold">{project.name}</h3>
