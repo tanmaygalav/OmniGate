@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
@@ -128,9 +129,12 @@ export default async function Dashboard() {
                     </div>
                   </div>
                   <div className="mt-6 flex justify-end">
-                    <button className="flex items-center gap-1 text-sm font-medium hover:text-gray-600 transition-colors">
-                      Manage Keys <ArrowRight className="w-4 h-4" />
-                    </button>
+                    <Link 
+                    href={`/dashboard/${project.id}`} 
+                    className="flex items-center gap-1 text-sm font-medium hover:text-gray-600 transition-colors"
+                    >
+                    Manage Keys <ArrowRight className="w-4 h-4" />
+                    </Link>
                   </div>
                 </div>
               ))}
