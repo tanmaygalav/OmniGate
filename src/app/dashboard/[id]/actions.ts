@@ -40,3 +40,28 @@ export async function revokeApiKey(keyId: string, projectId: string) {
   await supabase.from('api_keys').update({ is_active: false }).eq('id', keyId)
   revalidatePath(`/dashboard/${projectId}`)
 }
+
+export async function updateRateLimit(projectId: string, newLimit: number) {
+  const supabase = await createClient()
+
+  // 1. Verify the user is logged in for security
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  // 2. Update the rate_limit column in the projects table
+  const { error } = await supabase
+    .from('projects')
+    .update({ rate_limit: newLimit })
+    .eq('id', projectId)
+
+  if (error) {
+    console.error('Failed to update rate limit:', error)
+    return { success: false, error: error.message }
+  }
+
+  // 3. Clear the Next.js cache so the UI updates instantly
+  revalidatePath(`/dashboard/${projectId}`)
+  revalidatePath(`/dashboard/${projectId}/key/[keyId]`, 'page')
+  
+  return { success: true }
+}
