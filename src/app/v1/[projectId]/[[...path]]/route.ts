@@ -51,12 +51,16 @@ async function handleProxy(request: NextRequest, props: { params: Promise<{ proj
   }
 
   // 5. Construct the final Target URL
-  // We typecast projects because Supabase joins return a relational object
   const projectInfo = keyData.projects as unknown as { target_url: string }
-  const targetBaseUrl = projectInfo.target_url.replace(/\/$/, '') // Remove trailing slash if user added one
+  const targetBaseUrl = projectInfo.target_url.replace(/\/$/, '') 
   
-  // Combine base URL + dynamic path + any URL queries (?limit=10)
-  const targetUrl = `${targetBaseUrl}${subPath}${request.nextUrl.search}`
+  // Clean up Next.js injected route parameters before forwarding
+  const searchParams = new URLSearchParams(request.nextUrl.search)
+  searchParams.delete('projectId')
+  searchParams.delete('path')
+  const cleanQuery = searchParams.toString() ? `?${searchParams.toString()}` : ''
+
+  const targetUrl = `${targetBaseUrl}${subPath}${cleanQuery}`
 
   // 6. Forward the Request
   const proxyHeaders = new Headers(request.headers)
