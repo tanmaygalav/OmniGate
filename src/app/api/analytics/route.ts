@@ -1,25 +1,38 @@
 import { NextResponse } from 'next/server';
 
+// FIX: Force Vercel to bypass the cache and fetch fresh data every time
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const key_hash = searchParams.get('key_hash');
+  const keyHash = searchParams.get('key_hash');
 
-  if (!key_hash) {
+  if (!keyHash) {
     return NextResponse.json({ error: 'Missing key_hash' }, { status: 400 });
   }
 
-  // Use the Pipe URL you copied in Step 1 (Replace the URL and Token below!)
-  const TINYBIRD_PIPE_URL = `https://api.europe-west2.gcp.tinybird.co/v0/pipes/api_usage_stats.json`;
-  const TINYBIRD_READ_TOKEN = process.env.TINYBIRD_TOKEN;
-
   try {
-    const response = await fetch(`${TINYBIRD_PIPE_URL}?key_hash=${key_hash}`, {
-      headers: { 'Authorization': `Bearer ${TINYBIRD_READ_TOKEN}` }
+    // IMPORTANT: Make sure this URL matches your actual Tinybird Pipe name and region!
+    // If your pipe is named differently, change 'gateway_logs_api'
+    const tinybirdUrl = new URL(`https://api.europe-west2.gcp.tinybird.co/v0/pipes/gateway_logs.json`);
+    tinybirdUrl.searchParams.append('key_hash', keyHash);
+
+    const response = await fetch(tinybirdUrl.toString(), {
+      headers: {
+        Authorization: `Bearer ${process.env.TINYBIRD_TOKEN}`,
+      },
     });
-    
+
+    if (!response.ok) {
+      console.error('Tinybird read error:', await response.text());
+      return NextResponse.json({ data: [] }); 
+    }
+
     const data = await response.json();
-    return NextResponse.json(data);
+    return NextResponse.json({ data: data.data });
+
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch analytics' }, { status: 500 });
+    console.error('Analytics Fetch Error:', error);
+    return NextResponse.json({ data: [] });
   }
 }
