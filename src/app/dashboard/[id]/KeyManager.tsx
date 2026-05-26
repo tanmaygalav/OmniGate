@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { generateApiKey, revokeApiKey } from './actions'
 import { Key, Copy, Check, ShieldAlert, Trash2, Activity } from 'lucide-react'
-import { toast } from 'sonner' // <-- 1. Import Sonner
+import { toast } from 'sonner'
 
 type APIKey = {
   id: string
@@ -20,25 +20,22 @@ export default function KeyManager({ projectId, existingKeys }: { projectId: str
 
   const handleGenerate = async () => {
     setIsGenerating(true)
-    
-    // 2. Wrap the server action in toast.promise
     toast.promise(
       generateApiKey(projectId).then((key) => {
         setNewKey(key)
         setCopied(false)
-        return key // Pass the success forward
+        return key
       }),
       {
         loading: 'Generating secure API key...',
         success: 'New API key generated successfully!',
         error: 'Failed to generate API key. Please try again.',
-        finally: () => setIsGenerating(false) // Always run this when done
+        finally: () => setIsGenerating(false)
       }
     )
   }
 
   const handleRevoke = async (keyId: string) => {
-    // 1. Trigger a custom toast that acts as a confirmation dialog
     toast.error(
       <div className="flex flex-col gap-3">
         <span className="font-semibold text-gray-900">Revoke API Key?</span>
@@ -55,9 +52,7 @@ export default function KeyManager({ projectId, existingKeys }: { projectId: str
           <button 
             className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors"
             onClick={() => {
-              toast.dismiss(); // Close the confirmation dialog
-              
-              // 2. Execute the actual revoke action wrapped in a promise toast
+              toast.dismiss()
               toast.promise(
                 revokeApiKey(keyId, projectId),
                 {
@@ -65,17 +60,14 @@ export default function KeyManager({ projectId, existingKeys }: { projectId: str
                   success: 'API key revoked permanently.',
                   error: 'Failed to revoke API key.'
                 }
-              );
+              )
             }}
           >
             Yes, Revoke
           </button>
         </div>
       </div>,
-      {
-        duration: Infinity, // Keep the toast open until they click a button
-        position: 'bottom-right',
-      }
+      { duration: Infinity, position: 'bottom-right' }
     )
   }
 
@@ -83,27 +75,27 @@ export default function KeyManager({ projectId, existingKeys }: { projectId: str
     if (newKey) {
       navigator.clipboard.writeText(newKey)
       setCopied(true)
-      toast.success('API key copied to clipboard!') // 4. Instant success toast
+      toast.success('API key copied to clipboard!')
       setTimeout(() => setCopied(false), 2000)
     }
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Show Once Alert Box */}
       {newKey && (
-        <div className="p-6 bg-green-50 border border-green-200 rounded-xl animate-in fade-in slide-in-from-top-4">
-          <div className="flex items-center gap-2 text-green-800 font-semibold mb-2">
-            <ShieldAlert className="w-5 h-5" />
-            Please copy this key now. You will not be able to see it again!
+        <div className="p-4 sm:p-6 bg-green-50 border border-green-200 rounded-xl animate-in fade-in slide-in-from-top-4">
+          <div className="flex items-start sm:items-center gap-2 text-green-800 font-semibold mb-2">
+            <ShieldAlert className="w-5 h-5 shrink-0 mt-0.5 sm:mt-0" />
+            <span>Please copy this key now. You will not be able to see it again!</span>
           </div>
-          <div className="flex items-center gap-2 mt-4">
-            <code className="flex-1 p-3 bg-white border border-green-200 rounded-lg text-lg font-mono text-gray-800">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-4">
+            <code className="flex-1 p-3 bg-white border border-green-200 rounded-lg text-sm sm:text-lg font-mono text-gray-800 break-all">
               {newKey}
             </code>
             <button
               onClick={copyToClipboard}
-              className="flex items-center gap-2 px-4 py-3 text-white bg-green-700 rounded-lg hover:bg-green-800 transition-colors"
+              className="flex items-center justify-center gap-2 px-4 py-3 text-white bg-green-700 rounded-lg hover:bg-green-800 transition-colors w-full sm:w-auto shrink-0"
             >
               {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
               {copied ? 'Copied' : 'Copy'}
@@ -113,15 +105,15 @@ export default function KeyManager({ projectId, existingKeys }: { projectId: str
       )}
 
       {/* Generation & List Section */}
-      <div className="bg-white p-6 rounded-xl border shadow-sm">
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-white p-4 sm:p-6 rounded-xl border shadow-sm">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Key className="w-5 h-5" /> API Keys
           </h2>
           <button
             onClick={handleGenerate}
             disabled={isGenerating}
-            className="px-4 py-2 text-sm font-medium text-white bg-black rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors"
+            className="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-sm font-medium text-white bg-black rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
           >
             {isGenerating ? 'Generating...' : '+ Generate New Key'}
           </button>
@@ -132,11 +124,13 @@ export default function KeyManager({ projectId, existingKeys }: { projectId: str
             <p className="text-gray-500 text-sm text-center py-4">No API keys generated yet.</p>
           ) : (
             existingKeys.map((key) => (
-              <div key={key.id} className={`flex items-center justify-between p-4 border rounded-lg ${key.is_active ? 'bg-gray-50' : 'bg-red-50 opacity-60'}`}>
+              <div key={key.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg gap-4 ${key.is_active ? 'bg-gray-50' : 'bg-red-50 opacity-60'}`}>
                 
                 {/* Left Side: Key Info */}
-                <div className="flex flex-col">
-                  <code className="font-mono text-sm font-semibold">{key.key_prefix}••••••••••••••••</code>
+                <div className="flex flex-col min-w-0 w-full">
+                  <code className="font-mono text-sm font-semibold truncate break-all">
+                    {key.key_prefix}••••••••••••••••
+                  </code>
                   <span className="text-xs text-gray-500 mt-1">
                     Created: {new Date(key.created_at).toLocaleDateString()}
                     {!key.is_active && ' (Revoked)'}
@@ -145,11 +139,12 @@ export default function KeyManager({ projectId, existingKeys }: { projectId: str
                 
                 {/* Right Side: Actions */}
                 {key.is_active && (
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0 mt-1 sm:mt-0">
                     {/* View Usage Button */}
                     <Link 
                       href={`/dashboard/${projectId}/key/${key.id}`}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-md transition-colors"
+                      prefetch={true}
+                      className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-md transition-colors"
                     >
                       <Activity className="w-4 h-4" />
                       View Usage
@@ -157,11 +152,11 @@ export default function KeyManager({ projectId, existingKeys }: { projectId: str
 
                     {/* Revoke Button */}
                     <button
-                      onClick={() => handleRevoke(key.id)} // <-- Updated this to use the new handler
-                      className="p-2 text-red-600 hover:bg-red-100 rounded-md transition-colors"
+                      onClick={() => handleRevoke(key.id)}
+                      className="p-2 text-red-600 hover:bg-red-100 border border-transparent hover:border-red-200 rounded-md transition-colors shrink-0"
                       title="Revoke Key"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-5 h-5 sm:w-4 sm:h-4" />
                     </button>
                   </div>
                 )}
