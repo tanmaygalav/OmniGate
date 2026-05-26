@@ -100,7 +100,8 @@ export default function DashboardClient({ projects, createProjectAction }: { pro
                 </div>
                 <div className="mt-6 flex justify-end">
                   <Link 
-                    href={`/dashboard/${project.id}`} 
+                    href={`/dashboard/${project.id}`}
+                    prefetch={true}
                     className="flex items-center gap-1 text-sm font-medium hover:text-gray-600 transition-colors"
                   >
                     Manage Keys <ArrowRight className="w-4 h-4" />
