@@ -18,7 +18,6 @@ async function hashKeyEdge(key: string) {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
-// FIX 1: Reverted to exactly 2 arguments to satisfy Next.js RouteHandler types
 async function handleProxy(
   request: NextRequest, 
   props: { params: Promise<{ projectId: string; path?: string[] }> }
@@ -125,25 +124,21 @@ async function handleProxy(
       user_agent: request.headers.get('user-agent') || 'unknown'
     }
 
-    // FIX 2: Create the telemetry promise
-    const telemetryPromise = fetch(`https://api.europe-west2.gcp.tinybird.co/v0/events?name=gateway_logs`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.TINYBIRD_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(logData)
-    })
-    .then(res => { if (!res.ok) console.error("Tinybird ingestion error:", res.status) })
-    .catch(err => console.error("Tinybird background logging failed:", err));
-
-    // FIX 3: Safely cast props to access Vercel's edge context without breaking TypeScript
-    const edgeContext = props as any;
-    if (typeof edgeContext.waitUntil === 'function') {
-      edgeContext.waitUntil(telemetryPromise);
+    // FIX: Await the Tinybird fetch to prevent Vercel from killing the background thread
+    try {
+      await fetch(`https://api.europe-west2.gcp.tinybird.co/v0/events?name=gateway_logs`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.TINYBIRD_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(logData)
+      });
+    } catch (err) {
+      console.error("Tinybird logging failed:", err);
     }
 
-    // 5. Return Response WITH Rate Limit Headers
+    // 6. Return Response WITH Rate Limit Headers
     const responseHeaders = new Headers(targetResponse.headers)
     Object.entries(rateLimitHeaders).forEach(([key, value]) => {
       responseHeaders.set(key, value)
@@ -161,7 +156,7 @@ async function handleProxy(
   }
 }
 
-// 6. Export all standard HTTP methods AND OPTIONS
+// Export all standard HTTP methods AND OPTIONS
 export { 
   handleProxy as GET, 
   handleProxy as POST, 
