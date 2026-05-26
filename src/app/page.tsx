@@ -47,7 +47,7 @@ export default function Home() {
               Start Building <ArrowRight className="w-5 h-5" />
             </Link>
             <Link 
-              href="https://github.com" 
+              href="https://github.com/tanmaygalav/OmniGate" 
               target="_blank"
               className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white text-black border border-gray-200 px-8 py-4 rounded-xl text-lg font-medium hover:bg-gray-50 transition-all active:scale-95"
             >
