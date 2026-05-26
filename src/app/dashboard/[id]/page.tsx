@@ -64,7 +64,7 @@ export default async function ProjectPage(props: { params: Promise<{ id: string 
           <div>
             <span className="text-sm font-medium text-gray-500 block mb-1">OmniGate Proxy URL</span>
             <div className="px-3 py-2 bg-blue-50 border border-blue-100 text-blue-800 rounded-md font-mono text-sm">
-              https://gateway.omnigate.live/v1/{project.id}
+              omnigatev1.vercel.app/v1/{project.id}
             </div>
           </div>
         </div>
