@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { generateApiKey, revokeApiKey } from './actions'
 import { Key, Copy, Check, ShieldAlert, Trash2, Activity } from 'lucide-react'
 import { toast } from 'sonner'
+import ApiPlayground from './ApiPlayground'
 
 type APIKey = {
   id: string
@@ -166,6 +167,10 @@ export default function KeyManager({ projectId, existingKeys }: { projectId: str
           )}
         </div>
       </div>
+
+      {/* API Sandbox Integration */}
+      <ApiPlayground projectId={projectId} />
+
     </div>
   )
 }
