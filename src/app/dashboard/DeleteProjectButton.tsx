@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { deleteProject } from './[id]/actions' // Make sure you have this server action
+import { deleteProject } from './[id]/actions'
 
 export default function DeleteProjectButton({ projectId, projectName }: { projectId: string, projectName: string }) {
   const [isDeleted, setIsDeleted] = useState(false)
@@ -28,10 +28,8 @@ export default function DeleteProjectButton({ projectId, projectName }: { projec
             onClick={() => {
               toast.dismiss()
               
-              // 1. OPTIMISTIC UI UPDATE: Hide the project instantly!
               setIsDeleted(true) 
               
-              // 2. Fire the server action in the background
               toast.promise(
                 deleteProject(projectId),
                 {
