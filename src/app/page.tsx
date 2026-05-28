@@ -28,10 +28,6 @@ export default function Home() {
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-6">
         <div className="max-w-4xl mx-auto text-center space-y-8">
-          {/* <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-50 border border-gray-200 text-sm font-medium text-gray-600 mb-4">
-            <span className="flex h-2 w-2 rounded-full bg-green-500"></span>
-            v1.0 is now live
-          </div> */}
           <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-black">
             Enterprise API Gateway <br className="hidden md:block" />
             <span className="text-gray-400">built for the Edge.</span>
@@ -68,7 +64,7 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {/* Feature 1 */}
+            {/* Feature-1 */}
             <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
               <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-6">
                 <Globe className="w-6 h-6" />
@@ -79,7 +75,7 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Feature 2 */}
+            {/* Feature-2 */}
             <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
               <div className="w-12 h-12 bg-red-50 text-red-600 rounded-xl flex items-center justify-center mb-6">
                 <Zap className="w-6 h-6" />
@@ -90,7 +86,7 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Feature 3 */}
+            {/* Feature-3 */}
             <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
               <div className="w-12 h-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center mb-6">
                 <Shield className="w-6 h-6" />
@@ -101,7 +97,7 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Feature 4 */}
+            {/* Feature-4 */}
             <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
               <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-6">
                 <BarChart3 className="w-6 h-6" />
