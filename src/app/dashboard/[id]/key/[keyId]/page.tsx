@@ -9,7 +9,7 @@ import { motion } from 'framer-motion';
 
 // Import your server actions
 import { updateRateLimit, getKeyAndProjectDetails } from '../../actions';
-// Import the shell (Adjust this path depending on exactly where you placed DashboardShell.tsx)
+// Import the shell
 import DashboardShell from '../../DashboardShell'; 
 
 export default function KeyUsageDashboard() {
@@ -27,15 +27,11 @@ export default function KeyUsageDashboard() {
   useEffect(() => {
     if (!keyId || !projectId) return;
 
-    // 1. Fetch the REAL data from Supabase first
     getKeyAndProjectDetails(keyId, projectId).then((details) => {
-      
-      // Update the UI with the actual limit from the database
       if (details.rateLimit) {
         setRateLimit(details.rateLimit);
       }
 
-      // 2. Fetch from Tinybird using the CORRECT secure hash
       if (details.keyHash) {
         fetch(`/api/analytics?key_hash=${details.keyHash}`)
           .then(res => res.json())
@@ -77,7 +73,7 @@ export default function KeyUsageDashboard() {
       {/* Ghost Navbar */}
       <header className="mb-12 flex items-center justify-between border-b border-white/5 pb-6">
         <Link href="/dashboard" className="flex items-center gap-2 text-silver-whisper hover:text-cloud-white transition-colors">
-          <Server className="w-5 h-5 text-amber-glow" />
+          <Server className="w-5 h-5 text-amber-glow/60" /> {/* Dimmed brand icon */}
           <h1 className="text-[18px] font-bold tracking-[0.14px] text-cloud-white">OmniGate</h1>
         </Link>
       </header>
@@ -92,12 +88,12 @@ export default function KeyUsageDashboard() {
         >
           <Link 
             href={`/dashboard/${projectId}`} 
-            className="inline-flex items-center gap-2 text-[12px] uppercase tracking-[1px] font-semibold text-warm-mist hover:text-amber-glow mb-6 transition-colors"
+            className="inline-flex items-center gap-2 text-[12px] uppercase tracking-[1px] font-semibold text-warm-mist hover:text-silver-whisper mb-6 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" /> Back to Edge Control
           </Link>
           <h1 className="text-[48px] md:text-[64px] font-black text-cloud-white leading-[1] tracking-[0.67px] uppercase font-mono flex items-center gap-4">
-            <Activity className="w-10 h-10 md:w-12 md:h-12 text-amber-glow opacity-80" /> Telemetry
+            <Activity className="w-10 h-10 md:w-12 md:h-12 text-amber-glow/40" /> Telemetry {/* Toned down icon opacity */}
           </h1>
         </motion.div>
 
@@ -119,20 +115,20 @@ export default function KeyUsageDashboard() {
             </div>
           </motion.div>
 
-          {/* Avg Latency Card (Amber Accent) */}
+          {/* Avg Latency Card (Subdued Accent) */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-            className="bg-amber-glow/[0.02] backdrop-blur-xl p-6 rounded-cards border border-amber-glow/20 shadow-[0_0_20px_rgba(242,185,139,0.05)] flex flex-col justify-between relative overflow-hidden"
-          >
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-amber-glow/10 blur-2xl rounded-full pointer-events-none" />
-            <span className="text-[10px] uppercase tracking-[1px] font-semibold text-amber-glow flex items-center gap-2 relative z-10">
+            className="bg-amber-glow/[0.01] backdrop-blur-xl p-6 rounded-cards border border-amber-glow/10 shadow-[0_0_15px_rgba(242,185,139,0.02)] flex flex-col justify-between relative overflow-hidden"
+          > {/* Dropped background opacity, border line alpha, and shadow spread */}
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-amber-glow/[0.03] blur-3xl rounded-full pointer-events-none" />
+            <span className="text-[10px] uppercase tracking-[1px] font-semibold text-amber-glow/60 flex items-center gap-2 relative z-10">
               <Zap className="w-3.5 h-3.5" /> Avg Latency
             </span>
             <div className="mt-4 flex items-baseline gap-2 relative z-10">
               <span className="text-[48px] font-mono font-bold text-cloud-white leading-none">
                 {data.length > 0 ? Math.round(data.reduce((acc: any, curr: any) => acc + curr.latency, 0) / data.length) : 0} 
               </span>
-              <span className="text-[14px] text-amber-glow/70 font-mono">ms</span>
+              <span className="text-[14px] text-amber-glow/40 font-mono">ms</span>
             </div>
           </motion.div>
 
@@ -167,22 +163,22 @@ export default function KeyUsageDashboard() {
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255, 255, 255, 0.05)" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255, 255, 255, 0.03)" />
                 <XAxis dataKey="date" stroke="#868f97" fontSize={10} tickLine={false} axisLine={false} dy={10} />
                 <YAxis stroke="#868f97" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(value) => (value === 0 ? '0' : value)} />
                 <Tooltip 
                   contentStyle={{ 
-                    backgroundColor: '#1d1d1f', border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: '12px', color: '#fefef7', fontSize: '12px', boxShadow: '0 8px 22px rgba(0, 0, 0, 0.2)'
+                    backgroundColor: '#141416', border: '1px solid rgba(255, 255, 255, 0.06)',
+                    borderRadius: '12px', color: '#fefef7', fontSize: '12px', boxShadow: '0 8px 22px rgba(0, 0, 0, 0.3)'
                   }}
-                  itemStyle={{ color: '#f2b98b' }}
-                  cursor={{ stroke: 'rgba(242, 185, 139, 0.2)', strokeWidth: 2 }}
+                  itemStyle={{ color: 'rgba(242, 185, 139, 0.8)' }}
+                  cursor={{ stroke: 'rgba(242, 185, 139, 0.08)', strokeWidth: 1.5 }}
                 />
                 <Line 
-                  type="monotone" dataKey="requests" stroke="#f2b98b" strokeWidth={3}
-                  dot={{ fill: '#0f0f10', stroke: '#f2b98b', strokeWidth: 2, r: 4 }}
-                  activeDot={{ fill: '#f2b98b', stroke: '#0f0f10', strokeWidth: 2, r: 6 }}
-                  animationDuration={1500}
+                  type="monotone" dataKey="requests" stroke="rgba(242, 185, 139, 0.75)" strokeWidth={2} // Slimmer, slightly transparent line
+                  dot={{ fill: '#0f0f10', stroke: 'rgba(242, 185, 139, 0.6)', strokeWidth: 1.5, r: 3.5 }}
+                  activeDot={{ fill: '#f2b98b', stroke: '#0f0f10', strokeWidth: 2, r: 5 }}
+                  animationDuration={1200}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -192,16 +188,16 @@ export default function KeyUsageDashboard() {
         {/* Security Controls */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
-          className="bg-white/[0.02] backdrop-blur-3xl border border-white/5 rounded-cards shadow-floating p-6 md:p-8"
+          className="bg-white/[0.01] backdrop-blur-3xl border border-white/5 rounded-cards shadow-floating p-6 md:p-8"
         >
           <h2 className="text-[18px] font-bold text-cloud-white tracking-[0.14px] mb-6 flex items-center gap-2">
-            <Lock className="w-5 h-5 text-amber-glow" /> Security Controls
+            <Lock className="w-5 h-5 text-amber-glow/40" /> Security Controls
           </h2>
           
           <div className="space-y-8">
             <div>
               <label className="text-[10px] uppercase tracking-[1px] font-semibold text-warm-mist block mb-2">API Key Database ID</label>
-              <div className="px-4 py-2.5 bg-deep-night/50 border border-white/5 rounded-md font-mono text-[13px] text-silver-whisper break-all selection:bg-amber-glow/30">
+              <div className="px-4 py-2.5 bg-deep-night/50 border border-white/5 rounded-md font-mono text-[13px] text-silver-whisper break-all selection:bg-amber-glow/20">
                 {keyId}
               </div>
             </div>
@@ -214,15 +210,15 @@ export default function KeyUsageDashboard() {
                     type="number" 
                     value={rateLimit}
                     onChange={(e) => setRateLimit(Number(e.target.value))}
-                    className="w-full bg-deep-night border border-white/10 rounded-md px-4 py-2.5 text-[14px] text-cloud-white outline-none focus:border-amber-glow transition-all"
+                    className="w-full bg-deep-night border border-white/10 rounded-md px-4 py-2.5 text-[14px] text-cloud-white outline-none focus:border-amber-glow/40 transition-all"
                   />
                 </div>
                 <button 
                   onClick={handleSaveRateLimit}
                   disabled={isSaving}
-                  className="w-full md:w-auto px-6 py-2.5 text-[14px] font-semibold text-cloud-white bg-transparent border border-amber-glow rounded-buttons hover:bg-amber-glow/10 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(242,185,139,0.15)] hover:shadow-[0_0_25px_rgba(242,185,139,0.25)] shrink-0"
-                >
-                  {isSaving ? 'Updating...' : <><Shield className="w-4 h-4 text-amber-glow" /> Enforce Limit</>}
+                  className="w-full md:w-auto px-6 py-2.5 text-[14px] font-semibold text-cloud-white bg-transparent border border-white/10 rounded-buttons hover:bg-white/5 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shrink-0"
+                > {/* Removed amber borders from execution action to keep it fully minimalist */}
+                  {isSaving ? 'Updating...' : <><Shield className="w-4 h-4 text-warm-mist" /> Enforce Limit</>}
                 </button>
               </div>
 
