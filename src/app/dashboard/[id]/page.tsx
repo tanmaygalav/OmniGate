@@ -1,11 +1,11 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Server } from 'lucide-react'
+import { ArrowLeft, Server, Link2 } from 'lucide-react'
 import KeyManager from './KeyManager'
+import DashboardShell from './DashboardShell'
 
 export default async function ProjectPage(props: { params: Promise<{ id: string }> }) {
-  // Await params in Next.js 15
   const params = await props.params
   const projectId = params.id
   
@@ -14,7 +14,6 @@ export default async function ProjectPage(props: { params: Promise<{ id: string 
 
   if (!user) return redirect('/login')
 
-  // Fetch Project Details
   const { data: project } = await supabase
     .from('projects')
     .select('*')
@@ -23,7 +22,6 @@ export default async function ProjectPage(props: { params: Promise<{ id: string 
 
   if (!project) return redirect('/dashboard')
 
-  // Fetch API Keys associated with this project
   const { data: apiKeys } = await supabase
     .from('api_keys')
     .select('*')
@@ -31,39 +29,46 @@ export default async function ProjectPage(props: { params: Promise<{ id: string 
     .order('created_at', { ascending: false })
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 pb-12">
-      {/* Navbar */}
-      <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
-        <Link href="/dashboard" className="flex items-center gap-2 hover:opacity-80">
-          <Server className="w-6 h-6 text-black" />
-          <h1 className="text-xl font-bold">OmniGate</h1>
+    <DashboardShell>
+      {/* Ghost Navbar */}
+      <header className="mb-12 flex items-center justify-between border-b border-white/5 pb-6">
+        <Link href="/dashboard" className="flex items-center gap-2 text-silver-whisper hover:text-cloud-white transition-colors">
+          <Server className="w-5 h-5 text-amber-glow" />
+          <h1 className="text-[18px] font-bold tracking-[0.14px] text-cloud-white">OmniGate</h1>
         </Link>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-500">{user.email}</span>
+        <div className="text-[14px] text-warm-mist font-mono bg-white/5 px-3 py-1.5 rounded-badges">
+          {user.email}
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto p-6 mt-8 space-y-8">
+      <main className="max-w-5xl mx-auto space-y-12">
         
-        {/* Navigation & Header */}
-        <div>
-          <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-black mb-4">
-            <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+        {/* Navigation & Header (Animated) */}
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <Link href="/dashboard" className="inline-flex items-center gap-2 text-[12px] uppercase tracking-[1px] font-semibold text-warm-mist hover:text-amber-glow mb-6 transition-colors">
+            <ArrowLeft className="w-4 h-4" /> Command Center
           </Link>
-          <h1 className="text-3xl font-bold">{project.name}</h1>
+          <h1 className="text-[48px] md:text-[64px] font-black text-cloud-white leading-[1] tracking-[0.67px] uppercase font-mono">
+            {project.name}
+          </h1>
         </div>
 
-        {/* Project Details */}
-        <div className="bg-white p-6 rounded-xl border shadow-sm space-y-4">
-          <div>
-            <span className="text-sm font-medium text-gray-500 block mb-1">Target URL (Backend)</span>
-            <div className="px-3 py-2 bg-gray-50 border rounded-md font-mono text-sm">
+        {/* Project Details - Glass Cards */}
+        <div className="grid md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100 fill-mode-both">
+          <div className="bg-white/[0.02] backdrop-blur-xl p-6 rounded-cards border border-white/5 shadow-floating">
+            <span className="text-[10px] uppercase tracking-[1px] font-semibold text-warm-mist block mb-3 flex items-center gap-2">
+              <Link2 className="w-3.5 h-3.5" /> Target URL (Backend)
+            </span>
+            <div className="px-4 py-3 bg-deep-night/50 border border-white/5 rounded-md font-mono text-[14px] text-silver-whisper truncate">
               {project.target_url}
             </div>
           </div>
-          <div>
-            <span className="text-sm font-medium text-gray-500 block mb-1">OmniGate Proxy URL</span>
-            <div className="px-3 py-2 bg-blue-50 border border-blue-100 text-blue-800 rounded-md font-mono text-sm">
+          
+          <div className="bg-white/[0.02] backdrop-blur-xl p-6 rounded-cards border border-amber-glow/20 shadow-[0_0_20px_rgba(242,185,139,0.05)]">
+            <span className="text-[10px] uppercase tracking-[1px] font-semibold text-amber-glow block mb-3 flex items-center gap-2">
+              <Server className="w-3.5 h-3.5" /> OmniGate Proxy URL
+            </span>
+            <div className="px-4 py-3 bg-amber-glow/5 border border-amber-glow/20 text-cloud-white rounded-md font-mono text-[14px] truncate selection:bg-amber-glow/30">
               omnigatev1.vercel.app/v1/{project.id}
             </div>
           </div>
@@ -73,6 +78,6 @@ export default async function ProjectPage(props: { params: Promise<{ id: string 
         <KeyManager projectId={project.id} existingKeys={apiKeys || []} />
 
       </main>
-    </div>
+    </DashboardShell>
   )
 }
